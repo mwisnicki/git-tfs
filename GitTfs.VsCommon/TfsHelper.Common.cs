@@ -20,6 +20,7 @@ using StructureMap.Attributes;
 using ChangeType = Microsoft.TeamFoundation.VersionControl.Client.ChangeType;
 using IdentityNotFoundException = Microsoft.TeamFoundation.VersionControl.Client.IdentityNotFoundException;
 using Microsoft.TeamFoundation.Build.Client;
+using Microsoft.TeamFoundation.VersionControl.Common;
 
 namespace Sep.Git.Tfs.VsCommon
 {
@@ -218,9 +219,37 @@ namespace Sep.Git.Tfs.VsCommon
         {
             var targetVersion = new ChangesetVersionSpec((int)targetChangeset);
             var searchTo = targetVersion;
-            var mergeInfo = VersionControl.QueryMerges(null, null, path, targetVersion, null, searchTo, RecursionType.Full).Where(x=>!x.Partial);
-            if (mergeInfo.Count() == 0) return -1;
-            return mergeInfo.Max(x => x.SourceVersion);
+            var changesetMerges = VersionControl.QueryMerges(null, null, path, targetVersion, null, searchTo, RecursionType.Full);
+            var mergeInfo = changesetMerges.Where(x=>!x.Partial).ToList();
+
+            var relevantMergeInfo = mergeInfo.Where(x => x.TargetVersion == targetChangeset).ToList();
+
+            // XXX relevantMergeInfo ?
+            if (mergeInfo.Count == 0) return -1;
+
+            // only look for merges to current revision
+            var parent = relevantMergeInfo.Max(x => x.SourceVersion);
+            
+            var parentBranch = GetBranchForChangeSet(parent);
+            var mergeCandidates = VersionControl.GetMergeCandidates(parentBranch, path, RecursionType.Full);
+            var validMergeCandidates = mergeCandidates.Where(mc => mc.Changeset.ChangesetId < targetChangeset).ToList();
+
+            // some changesets are not included so it's a cherry pick
+            if (validMergeCandidates.Count > 0)
+                return -1;
+
+            // TODO create metadata notes and add list of cherry picks to commit log
+
+            return parent;
+        }
+
+        private string GetBranchForChangeSet(int changesetId)
+        {
+            var changeset = GetChangeset(changesetId);
+
+            return changeset.Changes.
+                Select(change => AllTfsBranches.Keys.FirstOrDefault(branch => change.Item.ServerItem.StartsWith(branch))).
+                FirstOrDefault(branch => branch != null);
         }
 
         public bool Is2008OrOlder
