@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Reflection;
+using System.Text;
 using Microsoft.TeamFoundation;
 using Microsoft.TeamFoundation.Client;
 using Microsoft.TeamFoundation.VersionControl.Client;
@@ -215,16 +216,21 @@ namespace Sep.Git.Tfs.VsCommon
             }
         }
 
-        public virtual int FindMergeChangesetParent(string path, long targetChangeset, GitTfsRemote remote)
+        public virtual int FindMergeChangesetParent(string path, long targetChangeset, GitTfsRemote remote, out SortedSet<int> cherryPicks)
         {
             var targetVersion = new ChangesetVersionSpec((int)targetChangeset);
             var searchTo = targetVersion;
             var changesetMerges = VersionControl.QueryMerges(null, null, path, targetVersion, null, searchTo, RecursionType.Full);
             var mergeInfo = changesetMerges.Where(x=>!x.Partial).ToList();
+            var changesetMergesDetails = VersionControl.QueryMergesWithDetails(null, null, 0, path, targetVersion, 0, null, searchTo, RecursionType.Full);
+            //var changesetMergesExtended = VersionControl.QueryMergesExtended(null, targetVersion, null, searchTo, QueryMergesExtendedOptions.None);
 
             var relevantMergeInfo = mergeInfo.Where(x => x.TargetVersion == targetChangeset).ToList();
 
+            cherryPicks = null;
+
             // XXX relevantMergeInfo ?
+            // TODO handle partial merges using similar logic to cherry picks
             if (mergeInfo.Count == 0) return -1;
 
             // only look for merges to current revision
@@ -236,11 +242,35 @@ namespace Sep.Git.Tfs.VsCommon
 
             // some changesets are not included so it's a cherry pick
             if (validMergeCandidates.Count > 0)
+            {
+                Trace.WriteLine(new ToStringable(() =>
+                {
+                    var sb = new StringBuilder();
+                    sb.AppendFormat("Detected {0} cherry-picked merge(s) from {1} to {2} in C{3}:",
+                        validMergeCandidates.Count, parentBranch, path, targetChangeset);
+                    foreach (var mergeCandidate in validMergeCandidates)
+                    {
+                        var changeset = mergeCandidate.Changeset;
+                        var comment = Truncate(changeset.Comment.Replace("\n", " ").Replace("\r", ""), 50);
+                        sb.AppendLine().AppendFormat("- chery-pick C{0}: {1}", changeset.ChangesetId, comment);
+                    }
+                    return sb.ToString();
+                }));
+
+                cherryPicks = new SortedSet<int>(relevantMergeInfo.Select(m => m.SourceVersion)
+                    .Except(validMergeCandidates.Select(mc => mc.Changeset.ChangesetId)));
+
                 return -1;
+            }
 
             // TODO create metadata notes and add list of cherry picks to commit log
 
             return parent;
+        }
+
+        private static string Truncate(string s, int length)
+        {
+            return s.Substring(0, Math.Min(s.Length, length));
         }
 
         private string GetBranchForChangeSet(int changesetId)

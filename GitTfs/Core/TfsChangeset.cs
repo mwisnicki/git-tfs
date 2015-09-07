@@ -232,6 +232,7 @@ namespace Sep.Git.Tfs.Core
         }
 
         public string OmittedParentBranch { get; set; }
+        public SortedSet<int> CherryPicks { get;set; }
         public bool IsRenameChangeset { get; set; }
     }
 }

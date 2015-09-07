@@ -30,6 +30,11 @@ namespace Sep.Git.Tfs.Core
         /// </summary>
         string OmittedParentBranch { get; set; }
 
+        /// <summary>
+        /// IDs of cherry picked commits in this merge
+        /// </summary>
+        SortedSet<int> CherryPicks { get; set; }
+
         bool IsRenameChangeset { get; set; }
     }
 }

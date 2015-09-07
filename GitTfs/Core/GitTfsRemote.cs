@@ -397,15 +397,28 @@ namespace Sep.Git.Tfs.Core
             }
             else if (!IsIgnoringBranches())
             {
-                var parentChangesetId = Tfs.FindMergeChangesetParent(TfsRepositoryPath, changeset.Summary.ChangesetId, this);
+                SortedSet<int> cherryPickIds;
+                var parentChangesetId = Tfs.FindMergeChangesetParent(TfsRepositoryPath, changeset.Summary.ChangesetId, this, out cherryPickIds);
                 if (parentChangesetId < 1)  // Handle missing merge parent info
                 {
-                    if (stopOnFailMergeCommit)
+                    if (cherryPickIds == null)
                     {
-                        return false;
+                        if (stopOnFailMergeCommit)
+                        {
+                            return false;
+                        }
+                        stdout.WriteLine("warning: this changeset " + changeset.Summary.ChangesetId +
+                                         " is a merge changeset. But git-tfs is unable to determine the parent changeset.");
                     }
-                    stdout.WriteLine("warning: this changeset " + changeset.Summary.ChangesetId +
-                                     " is a merge changeset. But git-tfs is unable to determine the parent changeset.");
+                    else
+                    {
+                        // fetch cherry picked revisions
+                        string omittedParentBranch;
+                        var notReallyShaParent = FindMergedRemoteAndFetch(cherryPickIds.Max(), stopOnFailMergeCommit, out omittedParentBranch);
+                        //changeset.OmittedParentBranch = omittedParentBranch;
+                        
+                        changeset.CherryPicks = cherryPickIds;
+                    }
                     return true;
                 }
                 var shaParent = Repository.FindCommitHashByChangesetId(parentChangesetId);
@@ -456,8 +469,47 @@ namespace Sep.Git.Tfs.Core
             return isIgnoringBranchesDetected;
         }
 
+        private string GetCommitTitle(GitCommit commit)
+        {
+            if (commit == null || commit.Message == null)
+                return string.Empty;
+            
+            var lines = commit.Message.Split('\n', '\r');
+            if (lines.Length > 0)
+                return lines[0];
+
+            return string.Empty;
+        }
+
+        private string AbbreviateGitHash(string hash)
+        {
+            return hash.Substring(0, 7);
+        }
+
         private string ProcessChangeset(ITfsChangeset changeset, LogEntry log)
         {
+            if (changeset.CherryPicks != null)
+            {
+                var sb = new StringBuilder();
+                sb.Append("\ngit-tfs-cherry-picks:");
+                foreach (var cherryPickId in changeset.CherryPicks)
+                {
+                    // first does not work initially while second in incremental updates (?)
+                    var cherryPick = GetTfsChangesetById(cherryPickId) ?? Repository.GetTfsChangesetById(null, cherryPickId);
+                    var originalCommit = Repository.GetCommit(cherryPick.GitCommit);
+                    var commentLine = GetCommitTitle(originalCommit);
+
+                    sb.Append("\n  C").Append(cherryPickId);
+                    if (cherryPick != null)
+                    {
+                        sb.Append(" ").Append(AbbreviateGitHash(cherryPick.GitCommit));
+                    }
+                    sb.Append(" ").Append(commentLine);
+                }
+                sb.Append("\n");
+                log.Log += sb.ToString();
+            }
+
             if (ExportMetadatas)
             {
                 if (changeset.Summary.Workitems.Any()) {
