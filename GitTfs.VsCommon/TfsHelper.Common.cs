@@ -229,9 +229,8 @@ namespace Sep.Git.Tfs.VsCommon
 
             cherryPicks = null;
 
-            // XXX relevantMergeInfo ?
             // TODO handle partial merges using similar logic to cherry picks
-            if (mergeInfo.Count == 0) return -1;
+            if (relevantMergeInfo.Count == 0) return -1;
 
             // only look for merges to current revision
             var parent = relevantMergeInfo.Max(x => x.SourceVersion);

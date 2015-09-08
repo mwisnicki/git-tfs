@@ -401,7 +401,7 @@ namespace Sep.Git.Tfs.Core
                 var parentChangesetId = Tfs.FindMergeChangesetParent(TfsRepositoryPath, changeset.Summary.ChangesetId, this, out cherryPickIds);
                 if (parentChangesetId < 1)  // Handle missing merge parent info
                 {
-                    if (cherryPickIds == null)
+                    if (cherryPickIds == null || cherryPickIds.Count == 0)
                     {
                         if (stopOnFailMergeCommit)
                         {
