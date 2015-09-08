@@ -434,12 +434,18 @@ namespace Sep.Git.Tfs.Core
                 stdout.WriteLine("info: this changeset " + changeset.Summary.ChangesetId +
                                  " is a merge changeset. But was not treated as is because of your git setting...");
                 changeset.OmittedParentBranch = ";C" + changeset.Summary.ChangesetId;
+                var parentChangesetId = Tfs.FindMergeChangesetParent(TfsRepositoryPath, changeset.Summary.ChangesetId, this);
+                if (parentChangesetId > 0)
+                    changeset.OmittedParentBranch += " (merge C" + parentChangesetId + ")";
             }
             return true;
         }
 
         public bool IsIgnoringBranches()
         {
+#if true
+            return true;
+#else
             var value = Repository.GetConfig<string>(GitTfsConstants.IgnoreBranches, null);
             bool isIgnoringBranches;
             if (value != null && bool.TryParse(value, out isIgnoringBranches))
@@ -454,6 +460,7 @@ namespace Sep.Git.Tfs.Core
                     + "    git config --local " + GitTfsConstants.IgnoreBranches + " false");
             globals.Repository.SetConfig(GitTfsConstants.IgnoreBranches, isIgnoringBranchesDetected.ToString());
             return isIgnoringBranchesDetected;
+#endif
         }
 
         private string ProcessChangeset(ITfsChangeset changeset, LogEntry log)
