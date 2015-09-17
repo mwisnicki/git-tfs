@@ -415,9 +415,14 @@ namespace Sep.Git.Tfs.Core
                     shaParent = FindMergedRemoteAndFetch(parentChangesetId, stopOnFailMergeCommit, out omittedParentBranch);
                     changeset.OmittedParentBranch = omittedParentBranch;
                 }
+                changeset.OmittedParentBranch += " (merge C" + parentChangesetId;
+                if (shaParent != null)
+                    changeset.OmittedParentBranch += " " + shaParent.Substring(0, 7);
+                changeset.OmittedParentBranch += ")";
+
                 if (shaParent != null)
                 {
-                    parentCommit = shaParent;
+                    //parentCommit = shaParent;
                 }
                 else
                 {
