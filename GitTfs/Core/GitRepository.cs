@@ -58,6 +58,8 @@ namespace Sep.Git.Tfs.Core
 
         public static string ShortToLocalName(string branchName)
         {
+            if (branchName.StartsWith("refs/"))
+                return branchName;
             return "refs/heads/" + branchName;
         }
 
