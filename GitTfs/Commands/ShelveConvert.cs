@@ -46,10 +46,6 @@ namespace Sep.Git.Tfs.Commands
         public int Run()
         {
             var remote = _globals.Repository.ReadTfsRemote(_globals.RemoteId);
-            //var remote = _globals.Repository.ReadTfsRemote(TfsBranch);
-
-            //return remote.Tfs.ListShelvesets(this, remote);
-
             var pathToRemote = _globals.Repository.ReadAllTfsRemotes().ToDictionary(r => r.TfsRepositoryPath);
 
             foreach (var item in remote.Tfs.GetShelvesets(remote, Owner))
