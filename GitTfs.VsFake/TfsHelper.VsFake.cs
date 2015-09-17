@@ -493,6 +493,11 @@ namespace Sep.Git.Tfs.VsFake
             throw new NotImplementedException();
         }
 
+        public IEnumerable<ShelvesetInfo> GetShelvesets(IGitTfsRemote remote, string owner)
+        {
+            throw new NotImplementedException();
+        }
+
         public int ListShelvesets(ShelveList shelveList, IGitTfsRemote remote)
         {
             throw new NotImplementedException();

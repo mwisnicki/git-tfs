@@ -815,7 +815,7 @@ namespace Sep.Git.Tfs.Core
         public void Unshelve(string shelvesetOwner, string shelvesetName, string destinationBranch, Action<Exception> ignorableErrorHandler, bool force)
         {
             var destinationRef = GitRepository.ShortToLocalName(destinationBranch);
-            if(Repository.HasRef(destinationRef))
+            if (Repository.HasRef(destinationRef))
                 throw new GitTfsException("ERROR: Destination branch (" + destinationBranch + ") already exists!");
 
             var shelvesetChangeset = Tfs.GetShelvesetData(this, shelvesetOwner, shelvesetName);

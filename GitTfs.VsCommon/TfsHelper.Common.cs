@@ -821,6 +821,36 @@ namespace Sep.Git.Tfs.VsCommon
             return tfsChangeset;
         }
 
+        public IEnumerable<ShelvesetInfo> GetShelvesets(IGitTfsRemote remote, string owner)
+        {
+            var shelvesetOwner = owner == "all" ? null : (owner ?? GetAuthenticatedUser());
+            var shelvesets = VersionControl.QueryShelvesets(null, shelvesetOwner);
+
+
+            foreach (var shelveset in shelvesets)
+            {
+                var repoPath = remote.TfsRepositoryPath;
+                var itemSpec = new ItemSpec("$/", RecursionType.Full);
+                var change = VersionControl.QueryShelvedChanges(shelveset, new[] {itemSpec}).Single();
+                var remotes = GetAllTfsRootBranchesOrderedByCreation();
+                if (change.PendingChanges.Length > 0)
+                {
+                    var branch = FindBranchForPath(change.PendingChanges[0].ServerItem);
+                    yield return new ShelvesetInfo
+                    {
+                        Name = shelveset.Name,
+                        Owner = shelveset.OwnerName,
+                        Branch = branch
+                    };
+                }
+            }
+        }
+
+        private string FindBranchForPath(string path)
+        {
+            return AllTfsBranches.Keys.First(b => path.StartsWith(b + "/"));
+        }
+
         public int ListShelvesets(ShelveList shelveList, IGitTfsRemote remote)
         {
             var shelvesetOwner = shelveList.Owner == "all" ? null : (shelveList.Owner ?? GetAuthenticatedUser());
@@ -948,6 +978,7 @@ namespace Sep.Git.Tfs.VsCommon
                     ignorableErrorHandler.Catch(() =>
                     {
                         var item = (UnshelveItem)change.Item;
+                        // FIXME breaks on Delete
                         item.Get(workspace);
                     });
                 }

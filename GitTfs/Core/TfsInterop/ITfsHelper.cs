@@ -23,6 +23,7 @@ namespace Sep.Git.Tfs.Core.TfsInterop
         IChangeset GetChangeset(int changesetId);
         bool HasShelveset(string shelvesetName);
         ITfsChangeset GetShelvesetData(IGitTfsRemote remote, string shelvesetOwner, string shelvesetName);
+        IEnumerable<ShelvesetInfo> GetShelvesets(IGitTfsRemote remote, string owner);
         int ListShelvesets(ShelveList shelveList, IGitTfsRemote remote);
         bool CanShowCheckinDialog { get; }
         long ShowCheckinDialog(IWorkspace workspace, IPendingChange[] pendingChanges, IEnumerable<IWorkItemCheckedInfo> checkedInfos, string checkinComment);
@@ -48,5 +49,12 @@ namespace Sep.Git.Tfs.Core.TfsInterop
         /// <param name="action">The action to perform</param>
         void WithWorkspace(string localDirectory, IGitTfsRemote remote, IEnumerable<Tuple<string, string>> mappings, TfsChangesetInfo versionToFetch, Action<ITfsWorkspace> action);
         long QueueGatedCheckinBuild(Uri value, string buildDefinitionName, string shelvesetName, string checkInTicket);
+    }
+
+    public class ShelvesetInfo
+    {
+        public string Name;
+        public string Owner;
+        public string Branch;
     }
 }
