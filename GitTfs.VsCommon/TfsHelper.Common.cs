@@ -826,6 +826,7 @@ namespace Sep.Git.Tfs.VsCommon
             var shelvesetOwner = owner == "all" ? null : (owner ?? GetAuthenticatedUser());
             var shelvesets = VersionControl.QueryShelvesets(null, shelvesetOwner);
 
+            _stdout.WriteLine("Found: " + shelvesets.Length + " shelvesets");
 
             foreach (var shelveset in shelvesets)
             {
